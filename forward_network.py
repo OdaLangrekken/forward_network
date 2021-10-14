@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 class ForwardNetwork:
     def __init__(self, data, target):
@@ -110,36 +111,47 @@ class ForwardNetwork:
         for i in range(len(self.weights) - 1):
             self.error_matrix[i] = self.error_matrix[i][1:, :]
             
-    def update_weights(self):
+    def update_weights(self, learning_rate, reg_coef):
         current_layer = 0
         while current_layer < len(self.weights):
             m = self.num_inputs
             size = self.weights[current_layer].shape
             gradient = np.zeros(size)
             gradient[:, 0] = 1/m * self.error_matrix[current_layer][:, 0]
-            gradient[:, 1:] = 1/m * (self.error_matrix[current_layer][:, 1:] + 0.1*self.weights[current_layer][:, 1:])
-            self.weights[current_layer] -= 0.01 * gradient
+            gradient[:, 1:] = 1/m * (self.error_matrix[current_layer][:, 1:] + reg_coef*self.weights[current_layer][:, 1:])
+            self.weights[current_layer] -= learning_rate * gradient
             current_layer += 1
         
-    def train(self, num_epochs = 1000):
-        costs = []
+    def train(self, num_epochs = 100, learning_rate = 1, reg_coef = 0):
+        start = time.time()
         for i in range(num_epochs):
             self.forward_prop(self.data)
             self.back_prop(self.data, self.target)
-            self.update_weights()
-            costs.append(self.calculate_cost(self.activations[len(self.activations) - 1], self.target))
-        return costs
+            self.update_weights(learning_rate, reg_coef)
+            if i % 100 == 0:
+                print(f'Epochs done: {i}/{num_epochs}')
+        end = time.time()
+        if (end - start)/60 < 1:
+            print(f'Time elapsed: {end - start:.2f} s')
+        else:
+            print(f'Time elapsed: {(end - start)/60:.2f} m')
             
     def predict(self, x):
+        self.activations[0] = self.add_bias(x)
         self.forward_prop(x)
         preds = self.activations[len(self.activations) - 1]
         return np.argmax(preds, axis = 0)
     
-    def accuracy(self, x, y):
+    def predict_proba(self, x):
+        self.forward_prop(x)
+        preds = self.activations[len(self.activations) - 1]
+        return preds
+    
+    def accuracy(self, y_pred, y):
         acc = 0
-        preds = self.predict(x)
         for i in range(len(y)):
-            if preds[i] == y[i]:
+            if y_pred[i] == y[i]:
                 acc += 1
         return acc/len(y)
+           
            

@@ -3,7 +3,7 @@ import time
 
 class ForwardNetwork:
     def __init__(self, data, target):
-        self.data = self.add_bias(data)
+        self.data = self.add_bias(data)  # Add bias unit to input data
         self.target = target
         self.num_inputs = data.shape[1]
         self.num_features = data.shape[0]
@@ -29,7 +29,7 @@ class ForwardNetwork:
             counter = len(self.weights)
             size_prev_layer = self.weights[counter - 1].shape[0]
             self.weights[counter] = self.initialize_weights(size_layer, size_prev_layer + 1, self.num_inputs)
-            self.error_matrix[counter] = np.zeros((size_layer, size_prev_layer + 1))
+            #self.error_matrix[counter] = np.zeros((size_layer, size_prev_layer + 1))
             
     def add_bias(self, x):
         x = np.concatenate((np.ones((x.shape[1], 1)).T, x), axis=0)
@@ -76,23 +76,7 @@ class ForwardNetwork:
     def sigmoid_derivative(self, a):
         return a * (1 - a)
     
-    def back_prop1(self, x, y):
-        current_layer = len(self.weights)
-        a = self.activations.get(current_layer)
-        error = (a - y) * self.sigmoid_derivative(a)
-        self.errors[current_layer] = error.T
-        current_layer -= 1
-        while current_layer > 0:
-            a = self.activations.get(current_layer)
-            weights = self.weights.get(current_layer)
-            error_prev = self.errors.get(current_layer + 1)
-            if current_layer == len(self.weights) - 1:
-                error = np.dot(weights.T, error_prev)
-            else:
-                error = np.dot(weights.T, error_prev[1:])
-            self.errors[current_layer] = error
-            current_layer -= 1
-            
+
     def back_prop(self, x, y):
         current_layer = len(self.weights)
         a = self.activations.get(current_layer)
@@ -104,12 +88,12 @@ class ForwardNetwork:
             weights = self.weights.get(current_layer)
             error_prev = self.errors.get(current_layer + 1)
             error = np.dot(weights.T, error_prev)*self.sigmoid_derivative(a)
+            # Remove error corresponding to bias unit
+            error = error[1:, :]
             self.errors[current_layer] = error
             self.error_matrix[current_layer] = np.dot(error_prev, a.T)
             current_layer -= 1
         self.error_matrix[0] = np.dot(self.errors[1], self.activations[0].T)
-        for i in range(len(self.weights) - 1):
-            self.error_matrix[i] = self.error_matrix[i][1:, :]
             
     def update_weights(self, learning_rate, reg_coef):
         current_layer = 0
